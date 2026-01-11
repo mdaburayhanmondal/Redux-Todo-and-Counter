@@ -1,10 +1,10 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  value: 0, // your existing counter
-  fetchedValue: null, // ← new: will store the fetched number
+  value: 0,
+  randomNumber: null,
   status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
-  error: null, // string | null
+  error: null,
 };
 
 const counterSlice = createSlice({
@@ -26,18 +26,24 @@ const counterSlice = createSlice({
     incrementByAmount: (state, action) => {
       state.value += action.payload;
     },
-    fetchStart(state) {
-      state.status = 'loading';
-      state.error = null;
+    addRandom: (state, action) => {
+      state.value += action.payload;
     },
-    fetchSuccess(state, action) {
-      state.status = 'succeeded';
-      state.fetchedValue = action.payload;
-    },
-    fetchFailure(state, action) {
-      state.status = 'failed';
-      state.error = action.payload; // we will put error message here
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchRandomNumber.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchRandomNumber.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.randomNumber = action.payload;
+      })
+      .addCase(fetchRandomNumber.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      });
   },
 });
 
@@ -47,46 +53,19 @@ export const {
   double,
   reset,
   incrementByAmount,
-  fetchStart,
-  fetchSuccess,
-  fetchFailure,
+  addRandom,
 } = counterSlice.actions;
 export default counterSlice.reducer;
 
-// Thunk 1
-export const logSomething = () => async (dispatch, getState) => {
-  console.log('Thunk started!');
-
-  const currentValue = getState().counter.value;
-  console.log('Current count is:', currentValue);
-
-  console.log(`3 will be added in ${currentValue} seconds...`);
-
-  await new Promise((resolve) => setTimeout(resolve, currentValue * 1000));
-
-  dispatch(increment());
-  dispatch(increment());
-  dispatch(increment());
-  console.log('Just added 3 to the value!');
-};
-
-// Thunk 2
-export const fetchRandomNumber = () => async (dispatch, getState) => {
-  try {
-    dispatch(fetchStart());
-
-    const response = await fetch(
-      'https://jsonplaceholder.typicode.com/posts/1'
-    );
-    if (!response.ok) throw new Error('Network response was not ok');
-
-    const data = await response.json();
-
-    // number is from the post id
-    const randomNum = data.id * 10 + Math.floor(Math.random() * 100);
-
-    dispatch(fetchSuccess(randomNum));
-  } catch (err) {
-    dispatch(fetchFailure(err.message || 'Something went wrong'));
+export const fetchRandomNumber = createAsyncThunk(
+  'counter/fetchRandom',
+  async (_, { rejectWithValue }) => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const random = Math.floor(Math.random() * 100) + 1;
+      return random;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Something went wrong');
+    }
   }
-};
+);
