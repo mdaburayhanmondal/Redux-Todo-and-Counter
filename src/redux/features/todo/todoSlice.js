@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, nanoid } from '@reduxjs/toolkit';
 
 const initialState = {
   items: [],
@@ -7,29 +7,46 @@ const initialState = {
 };
 
 const todoSlice = createSlice({
-  name: 'ToDoSlice',
+  name: 'todos',
+
   initialState,
 
   reducers: {
-    addTodo: (state, action) => {
-      state.items.push({
-        id: Date.now(),
-        text: action.payload,
-        completed: false,
-      });
+    addTodo: {
+      reducer(state, action) {
+        state.items.push(action.payload);
+      },
+      prepare(text) {
+        return {
+          payload: {
+            id: nanoid(),
+            text,
+            completed: false,
+          },
+        };
+      },
     },
-    delTodo: (state, action) => {
-      return state.filter((todo) => todo.id !== action.payload);
+
+    delTodo(state, action) {
+      const index = state.items.findIndex((todo) => todo.id === action.payload);
+      if (index !== -1) {
+        state.items.splice(index, 1);
+      }
     },
-    doneTodo: (state, action) => {
-      const todo = state.find((todo) => todo.id === action.payload);
+
+    toggleTodo(state, action) {
+      const todo = state.items.find((todo) => todo.id === action.payload);
       if (todo) {
         todo.completed = !todo.completed;
       }
     },
+
+    clearError(state) {
+      state.error = null;
+    },
   },
 });
 
-export const { addTodo, delTodo, doneTodo } = todoSlice.actions;
+export const { addTodo, delTodo, toggleTodo, clearError } = todoSlice.actions;
 
 export default todoSlice.reducer;
